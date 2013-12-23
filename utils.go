@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+/*
+	字符串list转数据
+*/
 func ListToStringArray(data *list.List) []string {
 	e := data.Front()
 	r := make([]string, data.Len())
@@ -27,6 +30,9 @@ func ListToStringArray(data *list.List) []string {
 	return r
 }
 
+/*
+字符串截取
+*/
 func SubString(str string, begin, length int) string {
 	// 将字符串的转换成[]rune
 	rs := []rune(str)
@@ -48,6 +54,9 @@ func SubString(str string, begin, length int) string {
 	return string(rs[begin:end])
 }
 
+/*
+	计算校验集
+*/
 func CheckSum(msg []byte) uint16 {
 	sum := 0
 	for n := 1; n < len(msg)-1; n += 2 {
@@ -59,7 +68,10 @@ func CheckSum(msg []byte) uint16 {
 	return answer
 }
 
-func FileList(path string, subFile bool) []string {
+/*
+	获取文件清单
+*/
+func FileList(path string) []string {
 	list := make([]string, 0)
 	filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
@@ -74,10 +86,16 @@ func FileList(path string, subFile bool) []string {
 	return list
 }
 
+/*
+	程序暂停n秒,一般测试的时候用得比较多
+*/
 func WaitTimeOut(seconds int) {
 	time.Sleep(time.Second * time.Duration(seconds))
 }
 
+/*
+	wait,一般是可执行函数的最后用于阻止程序退出
+*/
 func WaitStop(callBack func()) {
 	var sigChan = make(chan os.Signal)
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
