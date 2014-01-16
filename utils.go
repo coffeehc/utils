@@ -6,7 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
+
+	"github.com/coffeehc/logger"
 )
 
 /*
@@ -98,10 +101,37 @@ func WaitTimeOut(seconds int) {
 */
 func WaitStop(callBack func()) {
 	var sigChan = make(chan os.Signal)
-	signal.Notify(sigChan, os.Interrupt, os.Kill)
+	signal.Notify(sigChan, os.Interrupt, os.Kill, syscall.SIGTERM)
 	<-sigChan
 	if callBack != nil {
 		callBack()
 	}
 	time.Sleep(time.Second)
+}
+
+func StartService(startFunc func(), callBack func()) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Errorf("系统异常退出,原因:%s", err)
+			if callBack != nil {
+				callBack()
+			}
+			time.Sleep(time.Second)
+		}
+	}()
+	startFunc()
+	WaitStop(callBack)
+}
+func StartServiceWithArgs(startFunc func(args []string), callBack func()) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Errorf("系统异常退出,原因:%s", err)
+			if callBack != nil {
+				callBack()
+			}
+			time.Sleep(time.Second)
+		}
+	}()
+	startFunc(os.Args)
+	WaitStop(callBack)
 }
