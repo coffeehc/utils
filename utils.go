@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"bufio"
 	"container/list"
 	"os"
 	"os/signal"
@@ -134,4 +135,22 @@ func StartServiceWithArgs(startFunc func(args []string), callBack func()) {
 	}()
 	startFunc(os.Args)
 	WaitStop(callBack)
+}
+
+func ReadLine(reader *bufio.Reader) ([]byte, error) {
+	base, isPrefix, err := reader.ReadLine()
+	if isPrefix {
+		return readline(reader, base)
+	} else {
+		return base, err
+	}
+}
+
+func readline(reader *bufio.Reader, base []byte) ([]byte, error) {
+	bytes, isPrefix, err := reader.ReadLine()
+	if isPrefix {
+		return readline(reader, append(base, bytes...))
+	} else {
+		return append(base, bytes...), err
+	}
 }
