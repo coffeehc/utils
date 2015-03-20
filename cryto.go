@@ -7,6 +7,16 @@ import (
 	"encoding/base64"
 )
 
+func CheckSum(msg []byte) uint16 {
+	sum := 0
+	for n := 0; n < len(msg); n++ {
+		sum += int(msg[n])
+	}
+	//sum = (sum >> 16) + (sum & 0xffff)
+	//sum += (sum >> 16)
+	return uint16(^sum)
+}
+
 func EncodeBase64(b []byte) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
