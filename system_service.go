@@ -2,92 +2,151 @@
 package utils
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"time"
 
-	"bitbucket.org/kardianos/service"
+	"github.com/coffeehc/logger"
+	"github.com/kardianos/service"
 )
 
-func StartService(name, displayName, desc string, onstart func(failMsg chan string), onstop func()) {
-	s, err := service.NewService(name, displayName, desc)
+type Service interface {
+	Run() error
+	Start() error
+	Stop() error
+}
+
+type serviceOwner struct {
+	service service.Service
+}
+
+func (this *serviceOwner) Run() error {
+	return this.service.Run()
+}
+
+func (this *serviceOwner) Start() error {
+	return this.service.Start()
+}
+
+func (this *serviceOwner) Stop() error {
+	return this.service.Stop()
+}
+
+type serviceWarp struct {
+	onstart func()
+	onstop  func()
+}
+
+func (warp *serviceWarp) Start(s service.Service) error {
+	logger.Info("service starting...")
+	if warp.onstart == nil {
+		return errors.New(logger.Error("没有定义启动方法"))
+	}
+	go func() {
+		defer func() {
+			if ok := recover(); ok != nil {
+				logger.Error("出现错误:%s,3秒后重新启动")
+				time.Sleep(3 * time.Second)
+				go s.Restart()
+			}
+		}()
+		warp.onstart()
+	}()
+	logger.Info("service start ok")
+	return nil
+}
+func (warp *serviceWarp) Stop(s service.Service) error {
+	logger.Info("service ending...")
+	if warp.onstop != nil {
+		warp.onstop()
+	} else {
+		logger.Warn("没有定义结束的处理方法")
+	}
+	logger.Info("service end ok")
+	return nil
+}
+
+func CreatService(name, displayName, desc string, onstart func(), onstop func()) Service {
+	config := &service.Config{
+		Name:             name,
+		DisplayName:      displayName,
+		Description:      desc,
+		WorkingDirectory: GetAppDir(),
+		Arguments:        []string{"run"},
+	}
+	warp := new(serviceWarp)
+	warp.onstart = onstart
+	warp.onstop = onstop
+	s, err := service.New(warp, config)
 	if err != nil {
 		log.Error("创建服务[%s]出现错误,%s", name, err)
-		return
+		return nil
 	}
+	return &serviceOwner{service: s}
+}
+
+func ProcessServiceWithFlag(service_ Service) {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
+	var s service.Service = nil
+	if ower, ok := service_.(*serviceOwner); ok {
+		s = ower.service
+	} else {
+		logger.Error("没有内置Service对象")
+		return
+	}
 	args := flag.Args()
-	if len(args) > 1 {
+	if len(args) > 0 {
 		var err error
-		verb := args[1]
+		verb := args[0]
 		switch verb {
 		case "install":
 			fmt.Println("安装")
 			err = s.Install()
 			if err != nil {
-				fmt.Printf("Failed to install: %s\n", err)
+				logger.Error("Failed to install: %s\n", err)
 				return
 			}
-			fmt.Printf("Service \"%s\" installed.\n", displayName)
+			logger.Info("Service \"%s\" installed.\n", s.String())
 			break
-		case "remove":
-			err = s.Remove()
+		case "uninstall":
+			err = s.Uninstall()
 			if err != nil {
-				fmt.Printf("Failed to remove: %s\n", err)
+				logger.Error("Failed to Uninstall: %s\n", err)
 				return
 			}
-			fmt.Printf("Service \"%s\" removed.\n", displayName)
+			logger.Info("Service \"%s\" Uninstall.\n", s.String())
 			break
 		case "run":
-			stop := make(chan string)
-			go func() {
-				failMsg := <-stop
-				log.Error("启动失败，原因：%s", failMsg)
-				s.Stop()
-			}()
-			onstart(stop)
+			err = s.Run()
+			if err != nil {
+				logger.Error("Failed to run: %s\n", err)
+				return
+			}
+			logger.Info("Service \"%s\" run.\n", s.String())
 			break
 		case "start":
 			err = s.Start()
 			if err != nil {
-				fmt.Printf("Failed to start: %s\n", err)
+				logger.Error("Failed to start: %s\n", err)
 				return
 			}
-			fmt.Printf("Service \"%s\" started.\n", displayName)
+			logger.Info("Service \"%s\" started.\n", s.String())
 			break
 		case "stop":
 			err = s.Stop()
 			if err != nil {
-				fmt.Printf("Failed to stop: %s\n", err)
+				logger.Error("Failed to stop: %s\n", err)
 				return
 			}
-			fmt.Printf("Service \"%s\" stopped.\n", displayName)
+			logger.Info("Service \"%s\" stopped.\n", s.String())
 			break
 		default:
-			fmt.Printf("不能识别的参数:%#s", args)
+			logger.Error("不能识别的参数:%#s", args)
 		}
 		time.Sleep(time.Second)
 		return
-	}
-	err = s.Run(func() error {
-		stop := make(chan string)
-		go func() {
-			failMsg := <-stop
-			log.Error("启动失败，原因：%s", failMsg)
-			s.Stop()
-		}()
-		go onstart(stop)
-		return nil
-	}, func() error {
-		if onstop != nil {
-			onstop()
-		}
-		log.Info("service 停止")
-		return nil
-	})
-	if err != nil {
-		log.Error(err.Error())
 	}
 }

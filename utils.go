@@ -44,7 +44,14 @@ func DirList(path string, hasSubDir bool) []string {
 		return files
 	}
 	for _, fileInfo := range ls {
-		if fileInfo.IsDir() && !hasSubDir {
+		if fileInfo.IsDir() {
+			if hasSubDir {
+				subList := DirList(filepath.Join(path, fileInfo.Name()), hasSubDir)
+				for _, sub := range subList {
+					files = append(files, sub)
+				}
+
+			}
 			continue
 		}
 		files = append(files, filepath.Join(path, fileInfo.Name()))
