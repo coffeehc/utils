@@ -46,7 +46,7 @@ func (warp *serviceWarp) Start(s service.Service) error {
 	go func() {
 		defer func() {
 			if ok := recover(); ok != nil {
-				logger.Error("出现错误:%s,3秒后重新启动")
+				logger.Error("出现错误:%s,3秒后重新启动", ok)
 				time.Sleep(3 * time.Second)
 				go s.Restart()
 			}
@@ -67,13 +67,13 @@ func (warp *serviceWarp) Stop(s service.Service) error {
 	return nil
 }
 
-func CreatService(name, displayName, desc string, onstart func(), onstop func()) Service {
+func CreatService(name, displayName, desc string, args []string, onstart func(), onstop func()) Service {
 	config := &service.Config{
 		Name:             name,
 		DisplayName:      displayName,
 		Description:      desc,
 		WorkingDirectory: GetAppDir(),
-		Arguments:        []string{"run"},
+		Arguments:        append(args, "run"),
 	}
 	warp := new(serviceWarp)
 	warp.onstart = onstart
