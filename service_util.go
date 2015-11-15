@@ -20,7 +20,7 @@ func (this *serviceWarp)Run() {
 }
 
 func (this *serviceWarp)Stop() {
-	this.Stop()
+	this.stopFunc()
 }
 func NewService(runFunc func(), stopFunc func()) Service {
 	return &serviceWarp{runFunc, stopFunc}
