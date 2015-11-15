@@ -10,6 +10,22 @@ import (
 	"github.com/coffeehc/logger"
 )
 
+type serviceWarp struct {
+	runFunc  func()
+	stopFunc func()
+}
+
+func (this *serviceWarp)Run() {
+	this.runFunc()
+}
+
+func (this *serviceWarp)Stop() {
+	this.Stop()
+}
+func NewService(runFunc func(), stopFunc func()) Service {
+	return &serviceWarp{runFunc, stopFunc}
+}
+
 func StartService(service Service) {
 	defer func() {
 		if err := recover(); err != nil {
