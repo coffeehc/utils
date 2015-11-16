@@ -8,21 +8,22 @@ import (
 	"time"
 	"os/signal"
 	"github.com/coffeehc/logger"
+	"fmt"
 )
 
 type serviceWarp struct {
-	runFunc  func()
-	stopFunc func()
+	runFunc  func() error
+	stopFunc func() error
 }
 
-func (this *serviceWarp)Run() {
-	this.runFunc()
+func (this *serviceWarp)Run() error {
+	return this.runFunc()
 }
 
-func (this *serviceWarp)Stop() {
-	this.stopFunc()
+func (this *serviceWarp)Stop() error {
+	return this.stopFunc()
 }
-func NewService(runFunc func(), stopFunc func()) Service {
+func NewService(runFunc func() error, stopFunc func() error) Service {
 	return &serviceWarp{runFunc, stopFunc}
 }
 
@@ -32,19 +33,27 @@ func StartService(service Service) {
 			logger.Error("service crash,cause is %s", err)
 		}
 		if service.Stop != nil {
-			service.Stop()
+			stopErr := service.Stop()
+			if stopErr != nil {
+				logger.Error("关闭服务失败,%s", stopErr)
+			}
 		}
 		time.Sleep(time.Second)
 	}()
 	if service.Run == nil {
 		panic("没有指定Run方法")
 	}
+	err := service.Run()
+	if err != nil {
+		panic(logger.Error("服务运行错误:%s", err))
+	}
+	fmt.Println(logger.Info("服务已正常启动"))
 	WaitStop()
 }
 
 type Service interface {
-	Run()
-	Stop()
+	Run() error
+	Stop() error
 }
 
 /*
