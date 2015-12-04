@@ -9,13 +9,17 @@ import (
 	"path/filepath"
 )
 
+
+func GetAppPath() string{
+	file, _ := exec.LookPath(os.Args[0])
+	path, _ := filepath.Abs(file)
+	return path
+}
 /*
 	获取App执行文件目录
 */
 func GetAppDir() string {
-	file, _ := exec.LookPath(os.Args[0])
-	path, _ := filepath.Abs(file)
-	return filepath.Dir(path)
+	return filepath.Dir(GetAppPath())
 }
 
 /**

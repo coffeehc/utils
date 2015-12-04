@@ -8,7 +8,6 @@ import (
 	"time"
 	"os/signal"
 	"github.com/coffeehc/logger"
-	"fmt"
 )
 
 type serviceWarp struct {
@@ -47,7 +46,7 @@ func StartService(service Service) {
 	if err != nil {
 		panic(logger.Error("服务运行错误:%s", err))
 	}
-	fmt.Println(logger.Info("服务已正常启动"))
+	logger.Info("服务已正常启动")
 	WaitStop()
 }
 
@@ -65,3 +64,4 @@ func WaitStop() {
 	sig := <-sigChan
 	logger.Debug("接收到指令:%s,立即关闭程序", sig)
 }
+
